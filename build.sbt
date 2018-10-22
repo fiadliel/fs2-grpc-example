@@ -14,7 +14,7 @@ lazy val client =
     .in(file("client"))
     .settings(
       libraryDependencies ++= List(
-        "io.grpc" % "grpc-netty" % "1.11.0"
+        "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
       )
     )
     .dependsOn(protobuf)
@@ -24,8 +24,8 @@ lazy val server =
     .in(file("server"))
     .settings(
       libraryDependencies ++= List(
-        "io.grpc" % "grpc-netty" % "1.11.0",
-        "io.grpc" % "grpc-services" % "1.11.0"
+        "io.grpc" % "grpc-netty" % scalapb.compiler.Version.grpcJavaVersion,
+        "io.grpc" % "grpc-services" % scalapb.compiler.Version.grpcJavaVersion
       )
     )
     .dependsOn(protobuf)
