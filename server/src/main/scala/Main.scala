@@ -1,4 +1,4 @@
-import cats.effect.{ExitCode, IO, IOApp}
+import cats.effect.{ExitCode, IO, IOApp, Resource}
 import cats.implicits._
 import com.example.protos.hello._
 import fs2._
@@ -23,16 +23,16 @@ class ExampleImplementation extends GreeterFs2Grpc[IO] {
 object Main extends IOApp {
   val helloService: ServerServiceDefinition =
     GreeterFs2Grpc.bindService(new ExampleImplementation)
-  def run(args: List[String]): IO[ExitCode] = {
+
+  val serverResource: Resource[IO, Server] =
     ServerBuilder
       .forPort(9999)
       .addService(helloService)
       .addService(ProtoReflectionService.newInstance())
-      .stream[IO]
-      .evalMap(server => IO(server.start()))
-      .evalMap(_ => IO.never)
-      .compile
-      .drain
-      .as(ExitCode.Success)
-  }
+      .resource
+
+  def run(args: List[String]): IO[ExitCode] =
+    serverResource.use { server =>
+      IO(server.start()) *> IO.never.as(ExitCode.Success)
+    }
 }
