@@ -16,7 +16,7 @@ object Main extends IOApp.Simple {
 
   def runProgram(helloStub: GreeterFs2Grpc[IO, Metadata]): IO[Unit] = {
     for {
-      response <- helloStub.sayHello(HelloRequest("Ian de Beer"), new Metadata())
+      response <- helloStub.sayHello(HelloRequest("Joe Bloggs"), new Metadata())
       _ <- IO(println(response.message))
     } yield ()
   }
