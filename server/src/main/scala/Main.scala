@@ -1,12 +1,11 @@
-import cats.effect.IO
 import com.example.protos.hello._
 import fs2._
 import io.grpc._
-import io.grpc.protobuf.services.ProtoReflectionService
-import org.lyranthe.fs2_grpc.java_runtime.implicits._
-import scala.concurrent.ExecutionContext.Implicits.global
+import cats.effect._
 
-class ExampleImplementation extends GreeterFs2Grpc[IO] {
+import org.lyranthe.fs2_grpc.java_runtime.syntax.all._
+
+class MyImpl extends GreeterFs2Grpc[IO, Metadata] {
   override def sayHello(request: HelloRequest,
                         clientHeaders: Metadata): IO[HelloReply] = {
     IO(HelloReply("Request name is: " + request.name))
@@ -19,16 +18,24 @@ class ExampleImplementation extends GreeterFs2Grpc[IO] {
   }
 }
 
-object Main extends StreamApp[IO] {
-  val helloService: ServerServiceDefinition =
-    GreeterFs2Grpc.bindService(new ExampleImplementation)
-  def stream(args: List[String], requestShutdown: IO[Unit]): fs2.Stream[IO, StreamApp.ExitCode] = {
-    ServerBuilder
-      .forPort(9999)
-      .addService(helloService)
-      .addService(ProtoReflectionService.newInstance())
-      .stream[IO]
-      .evalMap(server => IO(server.start()))
-      .evalMap(_ => IO.never)
+object Main extends IOApp.Simple {
+  val helloService: Resource[IO, ServerServiceDefinition] =
+    GreeterFs2Grpc.bindServiceResource[IO](new MyImpl())
+
+
+  def run: IO[Unit] = {
+    val myFavouriteSync: Async[IO] = Async[IO]
+
+    val startup: IO[Any] = helloService.use{ service =>
+      ServerBuilder
+        .forPort(9999)
+        .addService(service)
+        .resource[IO](myFavouriteSync)
+        .evalMap(server => IO(server.start()))
+        .useForever
+    }
+
+    startup >> IO.unit
   }
+
 }
