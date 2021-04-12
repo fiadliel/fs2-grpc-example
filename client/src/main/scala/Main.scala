@@ -7,7 +7,7 @@ import org.lyranthe.fs2_grpc.java_runtime.implicits._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Main extends IOApp {
+object Main extends IOApp.Simple {
   val managedChannelStream: Stream[IO, ManagedChannel] =
     ManagedChannelBuilder
       .forAddress("127.0.0.1", 9999)
@@ -21,12 +21,12 @@ object Main extends IOApp {
     } yield ()
   }
 
-  override def run(args: List[String]): IO[ExitCode] = {
+  val run: IO[Unit] = {
     {for {
       dispatcher <- Stream.resource(Dispatcher[IO])
       managedChannel <- managedChannelStream
       helloStub = GreeterFs2Grpc.stub[IO](dispatcher,managedChannel)
       _ <- Stream.eval(runProgram(helloStub))
-    } yield ()}.compile.drain.as(ExitCode.Success)
+    } yield ()}.compile.drain
   }
 }
